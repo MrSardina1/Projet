@@ -13,6 +13,12 @@ export class AIChat {
 
   @Prop({ required: true })
   response: string;
+
+  @Prop({ default: 'openai' })
+  provider: string;
+
+  @Prop()
+  error: string;
 }
 
 export const AIChatSchema = SchemaFactory.createForClass(AIChat);

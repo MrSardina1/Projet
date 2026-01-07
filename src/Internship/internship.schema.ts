@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { Company } from 'src/company/company.schema';
 
 export type InternshipDocument = Internship & Document;
 
@@ -11,11 +12,14 @@ export class Internship {
   @Prop()
   description: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Company' })
-  company: Types.ObjectId;
+  @Prop({ required: true })
+  location: string;
 
-  @Prop({ type: [Types.ObjectId], ref: 'Application' })
-  applications: Types.ObjectId[];
+  @Prop({ required: true })
+  duration: string;
+
+  @Prop({ type: Types.ObjectId, ref: Company.name})
+  company: Types.ObjectId;
 }
 
 export const InternshipSchema = SchemaFactory.createForClass(Internship);

@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from 'src/Auth/jwt.auth.guard';
+import { RolesGuard } from 'src/Auth/roles.guard';
 import { Roles } from 'src/Auth/roles.decorator';
 import { Role } from 'src/Auth/roles.enum';
 
@@ -9,9 +10,15 @@ import { Role } from 'src/Auth/roles.enum';
 export class UserController {
     constructor(private readonly userService: UserService) {}
 
-    @UseGuards(JwtAuthGuard)
-    @Roles(Role.ADMIN)
+    // Public registration endpoint - NO authentication required
+    @Post('register')
+    register(@Body() body: CreateUserDto){
+        return this.userService.create(body);
+    }
 
+    // Protected endpoint - only ADMIN can create users directly
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
     @Post()
     create(@Body() body: CreateUserDto){
         return this.userService.create(body);

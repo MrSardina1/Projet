@@ -7,6 +7,7 @@ import { AuthModule } from './Auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AIChatModule } from './AIChat/aichat.module';
 import { CompanyModule } from './company/company.module';
+import { InternshipModule } from './internship/internship.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { CompanyModule } from './company/company.module';
     AuthModule,
     AIChatModule,
     CompanyModule,
+    InternshipModule,
   ],
   controllers: [AppController],
   providers: [AppService],
