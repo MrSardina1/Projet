@@ -4,6 +4,8 @@ import { RolesGuard } from 'src/Auth/roles.guard';
 import { InternshipService } from 'src/Internship/internship.service';
 import { Role } from 'src/Auth/roles.enum';
 import { Roles } from 'src/Auth/roles.decorator';
+import { Public } from 'src/Auth/public.decorator';
+import { CreateInternshipDto } from './dto/create-internship.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('internships')
@@ -15,7 +17,7 @@ export class InternshipController {
   @Post()
   @Roles(Role.COMPANY)
   create(
-    @Body() body: any,
+    @Body() body: CreateInternshipDto,
     @Req() req,
   ) {
     return this.internshipService.create(
@@ -24,9 +26,9 @@ export class InternshipController {
     );
   }
 
-    @Get()
-    @Public()
-    findAll() {
+  @Get()
+  @Public()
+  findAll() {
     return this.internshipService.findAll();
-    }
+  }
 }

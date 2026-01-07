@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Internship, InternshipDocument } from 'src/Internship/internship.schema';
 import { Model } from 'mongoose';
+import { CreateInternshipDto } from './dto/create-internship.dto';
 
 @Injectable()
 export class InternshipService {
@@ -10,7 +11,7 @@ export class InternshipService {
     private internshipModel: Model<InternshipDocument>,
   ) {}
 
-  create(data: any, companyId: string) {
+  create(data: CreateInternshipDto, companyId: string) {
     return this.internshipModel.create({
       ...data,
       company: companyId,
