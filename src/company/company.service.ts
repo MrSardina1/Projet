@@ -1,7 +1,7 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Company, CompanyDocument } from 'src/company/company.schema';
+import { Company, CompanyDocument, CompanyStatus } from 'src/company/company.schema';
 import { User } from 'src/user/user.schema';
 import * as bcrypt from 'bcrypt';
 import { Role } from 'src/Auth/roles.enum';
@@ -16,19 +16,16 @@ export class CompanyService {
   ) {}
 
   async create(data: any) {
-    // Check if user with this email already exists
     const existingUser = await this.userModel.findOne({ email: data.email });
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Check if company with this email already exists
     const existingCompany = await this.companyModel.findOne({ email: data.email });
     if (existingCompany) {
       throw new ConflictException('Company with this email already exists');
     }
 
-    // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(data.password, saltRounds);
 
@@ -40,17 +37,18 @@ export class CompanyService {
       role: Role.COMPANY,
     });
 
-    // Create company profile linked to user
+    // Create company profile with PENDING status (awaiting admin approval)
     const company = await this.companyModel.create({
       name: data.name,
       description: data.description,
       email: data.email,
       website: data.website,
-      user: user._id, // Link to user account
+      user: user._id,
+      status: CompanyStatus.PENDING, // Default to PENDING
     });
 
     return {
-      message: 'Company registered successfully',
+      message: 'Company registration submitted successfully. Please wait for admin verification.',
       user: {
         id: user._id,
         username: user.username,
@@ -61,37 +59,34 @@ export class CompanyService {
         id: company._id,
         name: company.name,
         email: company.email,
+        status: company.status,
       },
     };
   }
 
-  // Helper method to link an existing user to a company
   async linkUserToCompany(userId: string, companyData: any) {
-    // Verify user exists
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Check if user already has a company
     const existingCompany = await this.companyModel.findOne({ user: userId });
     if (existingCompany) {
       throw new ConflictException('This user is already linked to a company');
     }
 
-    // Check if company email already exists
     const emailExists = await this.companyModel.findOne({ email: companyData.email });
     if (emailExists) {
       throw new ConflictException('Company with this email already exists');
     }
 
-    // Create company linked to user
     const company = await this.companyModel.create({
       name: companyData.name,
       description: companyData.description,
       email: companyData.email,
       website: companyData.website,
       user: userId,
+      status: CompanyStatus.PENDING,
     });
 
     return {
@@ -100,11 +95,34 @@ export class CompanyService {
         id: company._id,
         name: company.name,
         email: company.email,
+        status: company.status,
       },
     };
   }
 
   findAll() {
-    return this.companyModel.find().populate('user', 'username email');
+    return this.companyModel
+      .find({ status: CompanyStatus.APPROVED }) // Only show approved companies
+      .populate('user', 'username email profilePicture');
+  }
+
+  async getCompanyByUserId(userId: string) {
+    const company = await this.companyModel
+      .findOne({ user: userId })
+      .populate('user', 'username email profilePicture');
+    
+    if (!company) {
+      throw new NotFoundException('Company profile not found');
+    }
+    
+    return company;
+  }
+
+  async getCompanyStatus(userId: string) {
+    const company = await this.companyModel.findOne({ user: userId });
+    if (!company) {
+      throw new NotFoundException('Company profile not found');
+    }
+    return { status: company.status };
   }
 }

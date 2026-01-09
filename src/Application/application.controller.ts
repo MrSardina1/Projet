@@ -25,15 +25,34 @@ export class ApplicationController {
     );
   }
 
-  // ADMIN and COMPANY can see applications
+  // ADMIN, COMPANY, and STUDENT can see applications
   @Get()
-  @Roles(Role.ADMIN, Role.COMPANY)
+  @Roles(Role.ADMIN, Role.COMPANY, Role.STUDENT)
   findAll(@Req() req) {
     const userId = req.user.userId;
     const userRole = req.user.role;
     
-    // Admin sees all, Company sees only their internship applications
     return this.applicationService.findAll(userId, userRole);
+  }
+
+  // NEW: Get my applications (STUDENT only)
+  @Get('my-applications')
+  @Roles(Role.STUDENT)
+  getMyApplications(@Req() req) {
+    return this.applicationService.getMyApplications(req.user.userId);
+  }
+
+  // NEW: Get accepted companies for student
+  @Get('accepted-companies')
+  @Roles(Role.STUDENT)
+  getAcceptedCompanies(@Req() req) {
+    return this.applicationService.getAcceptedCompanies(req.user.userId);
+  }
+
+  // NEW: Get application count for internship
+  @Get('count/:internshipId')
+  getApplicationCount(@Param('internshipId') internshipId: string) {
+    return this.applicationService.getApplicationCount(internshipId);
   }
 
   // ADMIN and COMPANY can update status

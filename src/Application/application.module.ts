@@ -13,10 +13,11 @@ import { Company, CompanySchema } from 'src/company/company.schema';
     MongooseModule.forFeature([
       { name: Application.name, schema: ApplicationSchema },
       { name: Internship.name, schema: InternshipSchema },
-      { name: Company.name, schema: CompanySchema }, // Added to find company by user ID
+      { name: Company.name, schema: CompanySchema },
     ]),
   ],
   controllers: [ApplicationController],
   providers: [ApplicationService],
+  exports: [ApplicationService], // Export the service
 })
 export class ApplicationModule {}

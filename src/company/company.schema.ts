@@ -3,6 +3,12 @@ import { Document, Types } from 'mongoose';
 
 export type CompanyDocument = Company & Document;
 
+export enum CompanyStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
 @Schema({ timestamps: true })
 export class Company {
   @Prop({ required: true })
@@ -19,6 +25,16 @@ export class Company {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   user: Types.ObjectId;
+
+  @Prop({ 
+    type: String, 
+    enum: CompanyStatus, 
+    default: CompanyStatus.PENDING 
+  })
+  status: CompanyStatus;
+
+  @Prop()
+  profilePicture: string;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

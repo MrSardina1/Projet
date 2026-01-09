@@ -17,18 +17,22 @@ export class ReviewService {
   ) {}
 
   async create(userId: string, companyId: string, rating: number, comment?: string) {
-    // Validate ObjectId formats
     if (!Types.ObjectId.isValid(companyId)) {
       throw new NotFoundException(`Invalid company ID format: ${companyId}`);
     }
 
-    // Check if company exists
+    // FIX: Validate rating as number between 1-5
+    const numRating = Number(rating);
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      throw new BadRequestException('Rating must be a number between 1 and 5');
+    }
+
     const company = await this.companyModel.findById(companyId);
     if (!company) {
       throw new NotFoundException('Company not found');
     }
 
-    // Check if student has an ACCEPTED application with this company
+    // Check if student has an ACCEPTED application with this company's internships
     const acceptedApplication = await this.applicationModel.findOne({
       student: new Types.ObjectId(userId),
       status: ApplicationStatus.ACCEPTED,
@@ -40,7 +44,6 @@ export class ReviewService {
       );
     }
 
-    // Verify the internship belongs to this company
     const internship = acceptedApplication.internship as any;
     if (internship.company.toString() !== companyId) {
       throw new ForbiddenException(
@@ -48,7 +51,6 @@ export class ReviewService {
       );
     }
 
-    // Check if user already reviewed this company
     const existingReview = await this.reviewModel.findOne({
       user: new Types.ObjectId(userId),
       company: new Types.ObjectId(companyId),
@@ -58,16 +60,10 @@ export class ReviewService {
       throw new BadRequestException('You have already reviewed this company');
     }
 
-    // Validate rating (1-5)
-    if (rating < 1 || rating > 5) {
-      throw new BadRequestException('Rating must be between 1 and 5');
-    }
-
-    // Create review
     return this.reviewModel.create({
       user: new Types.ObjectId(userId),
       company: new Types.ObjectId(companyId),
-      rating,
+      rating: numRating,
       comment,
     });
   }
@@ -87,7 +83,6 @@ export class ReviewService {
       .populate('user', 'username email')
       .sort({ createdAt: -1 });
 
-    // Calculate average rating
     const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
     const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
 
@@ -98,7 +93,7 @@ export class ReviewService {
         email: company.email,
         website: company.website,
       },
-      averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+      averageRating: Math.round(averageRating * 10) / 10,
       totalReviews: reviews.length,
       reviews,
     };
@@ -116,23 +111,23 @@ export class ReviewService {
       throw new NotFoundException(`Invalid review ID format: ${reviewId}`);
     }
 
+    // FIX: Validate rating as number between 1-5
+    const numRating = Number(rating);
+    if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+      throw new BadRequestException('Rating must be a number between 1 and 5');
+    }
+
     const review = await this.reviewModel.findById(reviewId);
     
     if (!review) {
       throw new NotFoundException('Review not found');
     }
 
-    // Check if user owns this review
     if (review.user.toString() !== userId) {
       throw new ForbiddenException('You can only update your own reviews');
     }
 
-    // Validate rating
-    if (rating < 1 || rating > 5) {
-      throw new BadRequestException('Rating must be between 1 and 5');
-    }
-
-    review.rating = rating;
+    review.rating = numRating;
     if (comment !== undefined) {
       review.comment = comment;
     }
@@ -151,7 +146,6 @@ export class ReviewService {
       throw new NotFoundException('Review not found');
     }
 
-    // Admin can delete any review, user can only delete their own
     if (userRole !== 'ADMIN' && review.user.toString() !== userId) {
       throw new ForbiddenException('You can only delete your own reviews');
     }
@@ -168,12 +162,23 @@ export class ReviewService {
     };
   }
 
-  // Admin only - get all reviews
   async findAll() {
     return this.reviewModel
       .find()
       .populate('user', 'username email')
       .populate('company', 'name email website')
       .sort({ createdAt: -1 });
+  }
+
+  // NEW: Get average rating for a company
+  async getAverageRating(companyId: string): Promise<number> {
+    const reviews = await this.reviewModel.find({ 
+      company: new Types.ObjectId(companyId) 
+    });
+    
+    if (reviews.length === 0) return 0;
+    
+    const total = reviews.reduce((sum, review) => sum + review.rating, 0);
+    return Math.round((total / reviews.length) * 10) / 10;
   }
 }
